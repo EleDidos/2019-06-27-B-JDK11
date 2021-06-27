@@ -5,8 +5,10 @@
 package it.polito.tdp.crimes;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.crimes.model.Arco;
 import it.polito.tdp.crimes.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -25,16 +27,16 @@ public class CrimesController {
     private URL location;
 
     @FXML // fx:id="boxCategoria"
-    private ComboBox<?> boxCategoria; // Value injected by FXMLLoader
+    private ComboBox<String> boxCategoria; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxMese"
-    private ComboBox<?> boxMese; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxMese; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnAnalisi"
     private Button btnAnalisi; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxArco"
-    private ComboBox<?> boxArco; // Value injected by FXMLLoader
+    private ComboBox<Arco> boxArco; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnPercorso"
     private Button btnPercorso; // Value injected by FXMLLoader
@@ -42,17 +44,70 @@ public class CrimesController {
     @FXML // fx:id="txtResult"
     private TextArea txtResult; // Value injected by FXMLLoader
 
+    
+    private List <Arco> archiMax;
+    
     @FXML
     void doCreaGrafo(ActionEvent event) {
     	txtResult.clear();
-    	txtResult.appendText("Crea grafo...\n");
+    	
+    	Integer mese;
+    	String categoria;
+    	
+    	try {
+    		mese=boxMese.getValue();
+    		categoria=boxCategoria.getValue();
+    		if(mese==null || categoria==null) {
+    			txtResult.setText("Scegli un mese e una categoria");
+    			return;
+    		}
+    	}catch(NumberFormatException nfe) {
+    		txtResult.setText("Scegli un mese e una categoria");
+    		return;
+    	}catch(NullPointerException npe) {
+    		txtResult.setText("Scegli un mese e una categoria");
+    		return;
+    	}
+    	
+    	model.creaGrafo(mese,categoria);
+    	txtResult.appendText("Caratteristiche del grafo:\n#VERTICI = "+model.getNVertici()+"\n#ARCHI = "+model.getNArchi());
+    	
+    	txtResult.appendText("\n\nGli ARCHI con un peso maggiore della media sono:\n");
+    	archiMax = model.getArchiMax();
+    	for(Arco a: archiMax )
+    		txtResult.appendText(a+"\n");
+    	
+    	boxArco.getItems().addAll(archiMax);
     }
     
     @FXML
     void doCalcolaPercorso(ActionEvent event) {
-    	txtResult.clear();
-    	txtResult.appendText("Calcola percorso...\n");
+    	//CONTROLLA SE ESISTE GRAFO
+    	if(model.getGraph()==null) {
+    		txtResult.setText("Devi prima creare il grafo!");
+    		return;
+    	}
+    	Arco scelto;
+    	try {
+    		scelto=boxArco.getValue();
+    		
+    		if(scelto==null) {
+    			txtResult.setText("Scegli un arco");
+    			return;
+    		}
+    	}catch(NullPointerException npe) {
+    		txtResult.setText("Scegli un arco");
+    		return;
+    	}
+    	String partenza = scelto.getR1();
+    	String arrivo = scelto.getR2();
+    	
+    	List <String> cammino = model.trovaPercorso (partenza,arrivo);
+    	txtResult.appendText("\n\nIl PERCORSO con il max n° di passi è:\n");
+    	for(String s: cammino)
+    		txtResult.appendText(s+"\n");
     }
+    
     
     @FXML // This method is called by the FXMLLoader when initialization is complete
     void initialize() {
@@ -67,5 +122,7 @@ public class CrimesController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	boxCategoria.getItems().addAll(model.getCategories());
+    	boxMese.getItems().addAll(model.getMonths());
     }
 }

@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import it.polito.tdp.crimes.model.Arco;
 import it.polito.tdp.crimes.model.Event;
 
 
@@ -53,5 +55,132 @@ public class EventsDao {
 			return null ;
 		}
 	}
+	
+	public List<String> listAllCategories(){
+		String sql = "SELECT DISTINCT offense_category_id as id "
+				+ "from events" ;
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			List<String> list = new ArrayList<String>() ;
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				
+					list.add(res.getString("id"));
+				
+			}
+			
+			conn.close();
+			return list ;
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
+	public List<Integer> listAllMonths(){
+		String sql = "SELECT DISTINCT MONTH(reported_date) as m "
+				+ "from events" ;
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			
+			List<Integer> list = new ArrayList<Integer>() ;
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				
+					list.add(res.getInt("m"));
+				
+			}
+			
+			conn.close();
+			return list ;
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null ;
+		}
+	}
+	
+	
+	//per VERTICI == STRING
+	public void loadAllVertici(List <String> vertici,Integer mese, String cat){
+		
+		
+		String sql = "SELECT DISTINCT offense_type_id as reato "
+				+ "from events "
+				+ "WHERE offense_category_id=? and MONTH(reported_date)=?" ;
+		try {
+			Connection conn = DBConnect.getConnection() ;
+
+			PreparedStatement st = conn.prepareStatement(sql) ;
+			st.setString(1, cat);
+			st.setInt(2, mese);
+			
+			ResultSet res = st.executeQuery() ;
+			
+			while(res.next()) {
+				if(!vertici.contains(res.getString("reato"))) {
+					
+					vertici.add(res.getString("reato"));
+					System.out.println();
+				}//if
+				
+			}//while
+			
+			conn.close();
+			return  ;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return  ;
+		}
+
+	}
+
+
+	public List <Arco> listArchi(List <String>vertici, String cat, Integer month){
+	String sql = "SELECT  e1.offense_type_id as r1, e2.offense_type_id as r2, COUNT(DISTINCT e1.neighborhood_id) AS peso "
+			+ "FROM events as e1, events as e2 "
+			+ "WHERE e1.offense_type_id>e2.offense_type_id and e1.neighborhood_id=e2.neighborhood_id and e1.offense_category_id=? and e1.offense_category_id=e2.offense_category_id and MONTH(e1.reported_date)=? and MONTH(e2.reported_date)=MONTH(e1.reported_date) "
+			+ "GROUP BY  e1.offense_type_id,e2.offense_type_id ";
+
+	Connection conn = DBConnect.getConnection();
+	List <Arco> archi = new ArrayList <Arco>();
+
+	try {
+		PreparedStatement st = conn.prepareStatement(sql);
+		st.setString(1, cat);
+		st.setInt(2, month);
+		ResultSet res = st.executeQuery();
+		while (res.next()) {
+			
+			if(vertici.contains(res.getString("r1")) & vertici.contains(res.getString("r2")) & res.getInt("peso")>0) {
+				Arco a = new Arco(res.getString("r1"),res.getString("r2"),res.getInt("peso"));
+				archi.add(a);
+				System.out.println(a);
+			}
+		
+
+		}
+		conn.close();
+		return archi;
+		
+	} catch (SQLException e) {
+		e.printStackTrace();
+		return null;
+	}
+	}
+
 
 }
